@@ -1,4 +1,4 @@
-#include "Queries_NW.h"
+#include "Queries_BL.h"
 #include <fstream>
 #include <iostream>
 #include <chrono>
@@ -6,7 +6,8 @@
 
 using namespace std;
 
-Queries_NW::Queries_NW() {
+
+Queries_BL::Queries_BL() {
     genomeArray = NULL;
     genomeQueries = NULL;
     cols = 16;
@@ -15,7 +16,8 @@ Queries_NW::Queries_NW() {
     gapPenalty = -1;
     NWRows = queriesLength + 1;
     NWCols = queriesLength + 1;
-
+    genomeSubStr = NULL;
+    seedSize = 11;
 
 
     // Moving initiazing to the constructor
@@ -33,9 +35,11 @@ Queries_NW::Queries_NW() {
     // FIll first col with gap penalty
     for (int i = 1; i < NWRows; i++)
         this->NWMatrix[i][0] = this->NWMatrix[i - 1][0] + this->gapPenalty;
+
+
 }
 
-void Queries_NW::readFragments(string fragmentFilePath) {
+void Queries_BL::readFragments(string fragmentFilePath) {
     queriesLineCount = 0;
     string line;
 
@@ -88,7 +92,7 @@ void Queries_NW::readFragments(string fragmentFilePath) {
     cout << "Numbers of lines in the queries file : " << queriesLineCount << endl;
 }
 
-void Queries_NW::readHumanGenomes(string genomeFilePath) {
+void Queries_BL::readHumanGenomes(string genomeFilePath) {
     // read file char by char
     char ch;
     fstream fin(genomeFilePath, fstream::in);
@@ -147,11 +151,39 @@ void Queries_NW::readHumanGenomes(string genomeFilePath) {
     cout << " sec " << endl;
 }
 
-long long Queries_NW::fuzzysearchTheQueries(string selectedCommand) {
-    
+long long Queries_BL::fuzzysearchTheQueries(string selectedCommand) {
+
     time_t start, end;
     std::time(&start);
     std::ios_base::sync_with_stdio(false);
+
+    // BL search start
+
+    long long int startIndex = rand() % (this->totalGenomeLength - this->genomeRangeToSearch - this->queriesLength);
+
+    genomeSubStr = new char[this->genomeRangeToSearch + 1];
+
+    // Copy if it's partial random
+    strncpy(genomeSubStr, this->genomeArray + startIndex, this->genomeRangeToSearch);
+
+    // Implement complete random here
+    //...
+
+    genomeSubStr[this->genomeRangeToSearch] = '\0';
+
+    insertIntoHashTable(genomeSubStr);
+
+    BLAST();
+
+
+
+    // BL search end
+
+    return 1;
+
+    /*
+    
+    
 
     hitCount = 0;
     //for (long long int i = 0; i < this->rows; i++) {
@@ -162,15 +194,15 @@ long long Queries_NW::fuzzysearchTheQueries(string selectedCommand) {
 
         for (long long int j = 0; j < this->rows; j++)
         {
-           int score = this->needlemanWunsch(randomString, this->genomeQueries[j]);
+            int score = this->needlemanWunsch(randomString, this->genomeQueries[j]);
 
-           if (score >= thresholdScore) {
-               hitCount++;
-               break;
-           }
+            if (score >= thresholdScore) {
+                hitCount++;
+                break;
+            }
         }
 
-        
+
 
         //int score = needlemanWunsch("jjs", "dasdasd");
     }
@@ -180,31 +212,33 @@ long long Queries_NW::fuzzysearchTheQueries(string selectedCommand) {
 
     // Calculating total time taken by the program.
     double time_taken = double(end - start);
-    cout << "Time taken to complete the fuzzy search with "<< selectedCommand <<" : "  << fixed
+    cout << "Time taken to complete the fuzzy search with " << selectedCommand << " : " << fixed
         << time_taken;
     cout << " sec " << endl;
 
     return hitCount;
+    
+    */
 }
 
-char* Queries_NW::getRandomStringFromSegment() {
+char* Queries_BL::getRandomStringFromSegment() {
     long long int startIndex = rand() % (this->totalGenomeLength - this->queriesLength);
 
     char* randomSubStr = new char[17];
 
     //string randomSubStr2
         //= genomeArray.substr(1, 2);
-     
+
     strncpy(randomSubStr, this->genomeArray + startIndex, 16);
     randomSubStr[16] = '\0';
 
     return randomSubStr;
 }
 
-char* Queries_NW::getCompletelyRandomString() {
+char* Queries_BL::getCompletelyRandomString() {
     char* completelyRandomStr = new char[17];
 
-    char genomeChars[6] = { 'A', 'C', 'G', 'T', 'N', '\0'};
+    char genomeChars[6] = { 'A', 'C', 'G', 'T', 'N', '\0' };
 
     for (int i = 0; i < this->queriesLength; i++)
     {
@@ -217,7 +251,7 @@ char* Queries_NW::getCompletelyRandomString() {
     return completelyRandomStr;
 }
 
-int Queries_NW::needlemanWunsch(char* string1, char* string2) {
+int Queries_BL::needlemanWunsch(char* string1, char* string2) {
     int rows = strlen(string1) + 1;
     int cols = strlen(string2) + 1;
 
@@ -267,9 +301,9 @@ int Queries_NW::needlemanWunsch(char* string1, char* string2) {
             int matchScore = string1[i - 1] == string2[j - 1] ? this->matchScore : this->misMatchScore;
             int diagonalval = matchScore + this->NWMatrix[i - 1][j - 1];
 
-            int finalScore = leftVal > rightVal ? 
-                            leftVal > diagonalval ? leftVal : diagonalval :
-                            rightVal > diagonalval ? rightVal : diagonalval;
+            int finalScore = leftVal > rightVal ?
+                leftVal > diagonalval ? leftVal : diagonalval :
+                rightVal > diagonalval ? rightVal : diagonalval;
             this->NWMatrix[i][j] = finalScore;
         }
     }
@@ -285,6 +319,149 @@ int Queries_NW::needlemanWunsch(char* string1, char* string2) {
     return NWMatrix[this->NWRows - 1][this->NWCols - 1];
 }
 
-Queries_NW::~Queries_NW() {
+long long int Queries_BL::getRadixHash(string key) {
+    int value = 0, base = 5;
+    long long int radix = 0;
+
+    for (int i = 0; i < this->seedSize; i++) {
+        switch (key[i]) {
+        case 'A':
+            value = 0;
+            break;
+        case 'C':
+            value = 1;
+            break;
+        case 'G':
+            value = 2;
+            break;
+        case 'T':
+            value = 3;
+            break;
+        default:
+            value = 4;
+            break;
+        }
+        radix += value * pow(base, (this->seedSize - i - 1));
+    }
+    return radix % this->genomeRangeToSearch;
+}
+
+// Function to populate the substring of the genome array
+void Queries_BL::insertIntoHashTable(char* substr) {
+    // Initializing Hash table
+    HashTable = new Node * [this->genomeRangeToSearch];
+    hashTableSize = this->genomeRangeToSearch;
+
+    for (long long int index = 0; index < this->genomeRangeToSearch; index++)
+        HashTable[index] = NULL;
+
+    for (long long int i = 0; i < this->genomeRangeToSearch - this->seedSize + 1; i++) {
+
+        char* seed = new char[this->seedSize + 1];
+
+        strncpy(seed, substr + i, this->seedSize);
+
+        seed[this->seedSize] = '\0';
+
+        long long int index = this->getRadixHash(seed);
+
+
+        Node* newNode = new Node;
+        newNode->data = seed;
+        newNode->index = i;
+        newNode->Next = this->HashTable[index];
+        this->HashTable[index] = newNode;
+
+
+    }
+
+    
+}
+
+Queries_BL::Node* Queries_BL::searchInHashTable(char* seed) {
+
+    /* Time function returns the time since the
+    Epoch(jan 1 1970). Returned time is in seconds. */
+    time_t start, end;
+    std::time(&start);
+    std::ios_base::sync_with_stdio(false);
+
+
+    long long int radixIndex = this->getRadixHash(seed);
+
+    if (this->HashTable[radixIndex] != NULL) {
+        Node* node = this->HashTable[radixIndex];
+        while (node != NULL)
+        {
+            if (strcmp(seed, node->data) == 0)
+            {
+                //cout << node->data.compare(substr) << endl;
+                //if (searchPrintCount++ < 10) {
+                //    cout << "Index " << i << " " << node->data << endl;
+
+                //}
+                node = node->Next;
+                return node;
+            }
+
+            node = node->Next;
+        }
+    }
+
+
+    time(&end);
+
+    // Calculating total time taken by the program.
+    double time_taken = double(end - start);
+    //cout << "Time taken to search in the HashTable : " << fixed
+    //    << time_taken;
+    //cout << " sec " << endl;
+    return NULL;
+}
+
+
+long long int Queries_BL::BLAST() {
+    for (long long int i = 0; i < this->rows; i++) {
+        for (int j = 0; j < this->queriesLength - this->seedSize + 1; j++) {
+            char* seed = new char[this->seedSize + 1];
+
+            strncpy(seed, this->genomeQueries[i] + j, this->seedSize);
+
+            seed[this->seedSize] = '\0';
+
+            Node* data = searchInHashTable(seed);
+
+            if (data != NULL) {
+                long long int seedFoundIndex = data->index;
+                char* actualString = new char[this->queriesLength + 1];
+
+                // Extend the search
+                int thresholdScore = ((this->queriesLength - this->allowdMismatchLength) * matchScore) + (this->allowdMismatchLength * misMatchScore);
+
+
+                strncpy(actualString, genomeSubStr - j, this->seedSize);
+
+                int score = needlemanWunsch(actualString, genomeQueries[i]);
+
+                if (score >= thresholdScore) {
+                    hitCount++;
+                    break;
+                }
+
+
+
+
+
+            }
+        }
+    }
+
+    return hitCount;
+}
+
+
+
+
+Queries_BL::~Queries_BL() {
 
 }
