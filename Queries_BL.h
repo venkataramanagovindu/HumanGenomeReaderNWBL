@@ -45,6 +45,7 @@ class Queries_BL
 		int needlemanWunsch(char* string1, char* string2);
 		long long int BLAST();
 		long long int fuzzysearchTheQueries(string selectedCommand);
+		char* getCompletelyRandomSubject(long long int length);
 		char* getRandomStringFromSegment();
 		char* getCompletelyRandomString();
 };

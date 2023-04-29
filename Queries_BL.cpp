@@ -3,6 +3,7 @@
 #include <iostream>
 #include <chrono>
 #include <cstring>
+#include <bits/stdc++.h>
 
 using namespace std;
 
@@ -164,22 +165,24 @@ long long Queries_BL::fuzzysearchTheQueries(string selectedCommand) {
     genomeSubStr = new char[this->genomeRangeToSearch + 1];
 
     // Copy if it's partial random
-    strncpy(genomeSubStr, this->genomeArray + startIndex, this->genomeRangeToSearch);
+    if(selectedCommand == "RANDOM")
+        strncpy(genomeSubStr, this->genomeArray + startIndex, this->genomeRangeToSearch);
 
-    // Implement complete random here
-    //...
+    // complete random here
+    else
+        genomeSubStr = getCompletelyRandomSubject(this->genomeRangeToSearch);
 
     genomeSubStr[this->genomeRangeToSearch] = '\0';
 
     insertIntoHashTable(genomeSubStr);
 
-    BLAST();
+     BLAST();
 
 
 
     // BL search end
 
-    return 1;
+    
 
     /*
     
@@ -205,20 +208,20 @@ long long Queries_BL::fuzzysearchTheQueries(string selectedCommand) {
 
 
         //int score = needlemanWunsch("jjs", "dasdasd");
-    }
+    }*/
 
     std::ios_base::sync_with_stdio(false);
     time(&end);
 
     // Calculating total time taken by the program.
     double time_taken = double(end - start);
-    cout << "Time taken to complete the fuzzy search with " << selectedCommand << " : " << fixed
+    cout << "Time taken to complete the fuzzy search with BLAST " << selectedCommand << " : " << fixed
         << time_taken;
     cout << " sec " << endl;
 
     return hitCount;
     
-    */
+
 }
 
 char* Queries_BL::getRandomStringFromSegment() {
@@ -400,7 +403,7 @@ Queries_BL::Node* Queries_BL::searchInHashTable(char* seed) {
                 //    cout << "Index " << i << " " << node->data << endl;
 
                 //}
-                node = node->Next;
+                //node = node->Next;
                 return node;
             }
 
@@ -419,8 +422,24 @@ Queries_BL::Node* Queries_BL::searchInHashTable(char* seed) {
     return NULL;
 }
 
+char* Queries_BL::getCompletelyRandomSubject(long long int length) {
+    char* completelyRandomStr = new char[length + 1];
+
+    char genomeChars[6] = { 'A', 'C', 'G', 'T', 'N', '\0' };
+
+    for (int i = 0; i < length; i++)
+    {
+        completelyRandomStr[i] = genomeChars[rand() % strlen(genomeChars)];
+    }
+
+    completelyRandomStr[length] = '\0';
+
+    return completelyRandomStr;
+}
+
 
 long long int Queries_BL::BLAST() {
+    hitCount = 0;
     for (long long int i = 0; i < this->rows; i++) {
         for (int j = 0; j < this->queriesLength - this->seedSize + 1; j++) {
             char* seed = new char[this->seedSize + 1];
@@ -431,27 +450,31 @@ long long int Queries_BL::BLAST() {
 
             Node* data = searchInHashTable(seed);
 
+
             if (data != NULL) {
-                long long int seedFoundIndex = data->index;
-                char* actualString = new char[this->queriesLength + 1];
+                while (data != NULL){
+                    if (strcmp(seed, data->data) == 0) {
+                        long long int seedFoundIndex = data->index;
+                        char* actualString = new char[this->queriesLength + 1];
 
-                // Extend the search
-                int thresholdScore = ((this->queriesLength - this->allowdMismatchLength) * matchScore) + (this->allowdMismatchLength * misMatchScore);
+                        // Extend the search
+                        int thresholdScore = ((this->queriesLength - this->allowdMismatchLength) * matchScore) + (this->allowdMismatchLength * misMatchScore);
 
 
-                strncpy(actualString, genomeSubStr - j, this->seedSize);
+                        strncpy(actualString, genomeSubStr + data->index - j, this->queriesLength);
 
-                int score = needlemanWunsch(actualString, genomeQueries[i]);
+                        actualString[this->queriesLength] = '\0';
 
-                if (score >= thresholdScore) {
-                    hitCount++;
-                    break;
+                        int score = needlemanWunsch(actualString, genomeQueries[i]);
+
+                        if (score >= thresholdScore) {
+                            hitCount++;
+                            break;
+                        }
+                        
+                    }
+                    data = data->Next;
                 }
-
-
-
-
-
             }
         }
     }
@@ -459,9 +482,20 @@ long long int Queries_BL::BLAST() {
     return hitCount;
 }
 
-
-
-
 Queries_BL::~Queries_BL() {
+    delete[] genomeArray;
+    delete[] genomeSubStr;
+
+    for (long long int i = 0; i < rows; i++) {
+        delete[] genomeQueries[i];
+    }
+
+    delete[] genomeQueries;
+
+    for (long long int i = 0; i < NWRows; i++) {
+        delete[] NWMatrix[i];
+    }
+    
+    delete[] NWMatrix;
 
 }

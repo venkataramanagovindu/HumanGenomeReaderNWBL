@@ -153,12 +153,14 @@ long long Queries_NW::fuzzysearchTheQueries(string selectedCommand) {
     std::time(&start);
     std::ios_base::sync_with_stdio(false);
 
+    char* randomString = NULL;
+
     hitCount = 0;
     //for (long long int i = 0; i < this->rows; i++) {
     int thresholdScore = ((this->queriesLength - this->allowdMismatchLength) * matchScore) + (this->allowdMismatchLength * misMatchScore);
 
     for (long long int i = 0; i < this->genomeRangeToSearch; i++) {
-        char* randomString = selectedCommand == "RANDOM" ? this->getRandomStringFromSegment() : this->getCompletelyRandomString();
+        randomString = selectedCommand == "RANDOM" ? this->getRandomStringFromSegment() : this->getCompletelyRandomString();
 
         for (long long int j = 0; j < this->rows; j++)
         {
@@ -286,5 +288,17 @@ int Queries_NW::needlemanWunsch(char* string1, char* string2) {
 }
 
 Queries_NW::~Queries_NW() {
+    delete[] genomeArray;
 
+    for (long long int i = 0; i < rows; i++) {
+        delete[] genomeQueries[i];
+    }
+
+    delete[] genomeQueries;
+
+    for (long long int i = 0; i < NWRows; i++) {
+        delete[] NWMatrix[i];
+    }
+
+    delete[] NWMatrix;
 }
